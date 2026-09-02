@@ -79,7 +79,7 @@ function formatMonthYear(d) {
 // 12:00 PM – 4:59 PM  → Good Afternoon
 // 5:00 PM – 4:59 AM   → Good Evening
 function getGreeting() {
-    const h = new Date().getHours();
+    const h = parseInt(new Date().toLocaleString("en-US", { timeZone: "Asia/Kathmandu", hour: 'numeric', hour12: false }));
     if (h >= 5 && h < 12) return "Good Morning";
     if (h >= 12 && h < 17) return "Good Afternoon";
     return "Good Evening";
@@ -265,9 +265,9 @@ function buildInitialData() {
     };
 
     const reports = [
-        { id: uid("r"), employeeId: "jeewan", fileName: "September Client Report.docx", fileType: "DOCX", fileSize: "184 KB", uploadedAt: todayKey, uploadedBy: "Jeewan Thakur", status: "Stored", url: null },
-        { id: uid("r"), employeeId: "jeewan", fileName: "Website Progress.xlsx", fileType: "XLSX", fileSize: "96 KB", uploadedAt: todayKey, uploadedBy: "Jeewan Thakur", status: "Stored", url: null },
-        { id: uid("r"), employeeId: "jeewan", fileName: "August Monthly Summary.pdf", fileType: "PDF", fileSize: "612 KB", uploadedAt: dateKey(addDays(TODAY, -1)), uploadedBy: "Jeewan Thakur", status: "Stored", url: null },
+        { id: uid("r"), employeeId: "jeewan", fileName: "September Client Report.docx", fileType: "DOCX", fileSize: "184 KB", uploadedAt: todayKey, uploadedBy: "Jeewan Thakur", status: "Stored", storageType: "local-prototype", url: null },
+        { id: uid("r"), employeeId: "jeewan", fileName: "Website Progress.xlsx", fileType: "XLSX", fileSize: "96 KB", uploadedAt: todayKey, uploadedBy: "Jeewan Thakur", status: "Stored", storageType: "local-prototype", url: null },
+        { id: uid("r"), employeeId: "jeewan", fileName: "August Monthly Summary.pdf", fileType: "PDF", fileSize: "612 KB", uploadedAt: dateKey(addDays(TODAY, -1)), uploadedBy: "Jeewan Thakur", status: "Stored", storageType: "local-prototype", url: null },
     ];
 
     return { tasks, worklogs, summaries, reports };
@@ -367,7 +367,7 @@ function LiveClock() {
     return (
         <div className="cw-live-clock">
             <Clock size={13} />
-            <span>{time.toLocaleTimeString()}</span>
+            <span>{time.toLocaleTimeString("en-US", { timeZone: "Asia/Kathmandu" })}</span>
         </div>
     );
 }
@@ -404,7 +404,7 @@ function Sidebar({ page, setPage, currentEmployee, mobileOpen, setMobileOpen }) 
                         <div className="cw-logo-sub">Workboard</div>
                     </div>
                 </div>
-                
+
                 <div style={{ padding: "0 10px 16px" }}>
                     <LiveClock />
                 </div>
@@ -444,7 +444,7 @@ function Sidebar({ page, setPage, currentEmployee, mobileOpen, setMobileOpen }) 
 
 function DateNav({ selectedDate, setSelectedDate, onAddTask, showAddTask = false }) {
     const isToday = sameDay(selectedDate, TODAY);
-    const isFuture = selectedDate >= new Date(TODAY.setHours(0,0,0,0));
+    const isFuture = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) > new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
     return (
         <div className="cw-date-nav">
             <button className="cw-pill-btn" onClick={() => setSelectedDate(addDays(selectedDate, -1))} aria-label="Previous day">
@@ -600,10 +600,10 @@ function Dashboard({ state, currentEmployee }) {
                             <div className="cw-cal-detail-stat"><span>Work Hours</span><strong>{formatDuration(monthMinutes)}</strong></div>
                         </div>
                     </div>
-                    
+
                     <div className="cw-panel cw-notify-panel">
                         <div className="cw-panel-head" style={{ marginBottom: 12 }}>
-                            <h3><Bell size={16}/> Notifications</h3>
+                            <h3><Bell size={16} /> Notifications</h3>
                         </div>
                         <div className="cw-notify-list">
                             <div className="cw-notify-item">
@@ -973,6 +973,10 @@ function DailySummaryPage({ state, selectedDate, setSelectedDate, actions, curre
     };
 
     const submitSummary = () => {
+        if (!local.accomplishments.trim() || !local.blockers.trim() || !local.tomorrowPlan.trim()) {
+            actions.toast("Please fill all fields before submitting.", "error");
+            return;
+        }
         actions.saveSummary(currentEmployee.id, key, {
             accomplishments: local.accomplishments,
             blockers: local.blockers,
@@ -1029,7 +1033,7 @@ function DailySummaryPage({ state, selectedDate, setSelectedDate, actions, curre
                         ) : (
                             <>
                                 <button className="cw-btn-outline" onClick={saveDraft}>Save Draft</button>
-                                <button className="cw-btn-primary" onClick={submitSummary} disabled={!local.accomplishments.trim() && !local.blockers.trim()}><Send size={15} /> Submit Summary</button>
+                                <button className="cw-btn-primary" onClick={submitSummary} disabled={!local.accomplishments.trim() || !local.blockers.trim() || !local.tomorrowPlan.trim()}><Send size={15} /> Submit Summary</button>
                             </>
                         )}
                     </div>
@@ -1066,7 +1070,7 @@ function DailySummaryPage({ state, selectedDate, setSelectedDate, actions, curre
 /* -------------------------------- Management page ------------------------------ */
 /* Management is MANAGER ONLY. Employees must NOT see this page. */
 
-function ManagementPage({ state, selectedDate, currentEmployee, actions }) {
+function ManagementPage({ state, selectedDate, setSelectedDate, currentEmployee, actions }) {
     const key = dateKey(selectedDate);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [viewTab, setViewTab] = useState("overview");
@@ -1101,7 +1105,7 @@ function ManagementPage({ state, selectedDate, currentEmployee, actions }) {
                     <h1 className="cw-page-title">Management</h1>
                     <p className="cw-subtle">Overview of authorized employee records.</p>
                 </div>
-                <DateNav selectedDate={selectedDate} setSelectedDate={(d) => { /* Manager can select any date in management view */ }} showAddTask={false} />
+                <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} showAddTask={false} />
             </div>
 
             <div className="cw-stat-grid">
@@ -1221,7 +1225,7 @@ function ManagementPage({ state, selectedDate, currentEmployee, actions }) {
                                 <EmptyState icon={<FileIcon size={20} color="var(--text-dimmer)" />} title="No reports uploaded" />
                             ) : state.reports.filter(r => r.employeeId === viewEmployee.emp.id).map((r) => (
                                 <div className="cw-mgmt-list-item" key={r.id}>
-                                    <span style={{flex:1}}>{r.fileName}</span>
+                                    <span style={{ flex: 1 }}>{r.fileName}</span>
                                     <span className="cw-subtle-sm">{r.fileSize}</span>
                                 </div>
                             ))}
@@ -1607,12 +1611,12 @@ export default function App() {
             setState((s) => ({ ...s, summaries: { ...s.summaries, [`${employeeId}__${dk}`]: { ...(s.summaries[`${employeeId}__${dk}`] || { accomplishments: "", blockers: "", tomorrowPlan: "", submitted: false, submittedAt: null, managerReviewed: false, managerComment: "" }), ...patch } } }));
         },
         submitSummary: (employeeId, dk) => {
-            const now = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+            const now = new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Kathmandu", hour: "2-digit", minute: "2-digit" });
             setState((s) => ({ ...s, summaries: { ...s.summaries, [`${employeeId}__${dk}`]: { ...(s.summaries[`${employeeId}__${dk}`] || {}), submitted: true, submittedAt: now } } }));
             toast("Daily summary submitted.", "success");
         },
         moveTask: (taskId, status) => {
-            setState((s) => ({ ...s, tasks: s.tasks.map((t) => t.id === taskId ? { ...t, status, completedAt: status === "DONE" ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : null } : t) }));
+            setState((s) => ({ ...s, tasks: s.tasks.map((t) => t.id === taskId ? { ...t, status, completedAt: status === "DONE" ? new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Kathmandu", hour: "2-digit", minute: "2-digit" }) : null } : t) }));
         },
         deleteTask: (taskId) => {
             if (!window.confirm("Delete this task? This can't be undone.")) return;
@@ -1628,7 +1632,7 @@ export default function App() {
             const url = (typeof URL !== "undefined" && URL.createObjectURL) ? URL.createObjectURL(file) : null;
             const sizeKB = Math.max(1, Math.round(file.size / 1024));
             const size = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
-            setState((s) => ({ ...s, reports: [{ id: uid("r"), employeeId: employee.id, fileName: file.name, fileType: ext, fileSize: size, uploadedAt: dateKey(TODAY), uploadedBy: employee.name, status: "Stored", url }, ...s.reports] }));
+            setState((s) => ({ ...s, reports: [{ id: uid("r"), employeeId: employee.id, fileName: file.name, fileType: ext, fileSize: size, uploadedAt: dateKey(TODAY), uploadedBy: employee.name, status: "Stored", storageType: "local-prototype", url }, ...s.reports] }));
             toast(`${file.name} uploaded.`, "success");
         },
         deleteReport: (id) => {
@@ -1646,7 +1650,7 @@ export default function App() {
             if (form.id) {
                 return { ...s, tasks: s.tasks.map((t) => t.id === form.id ? { ...t, ...form } : t) };
             }
-            const newTask = { ...form, id: uid("t"), employeeId: currentEmployee.id, dateKey: dateKey(selectedDate), createdAt: Date.now(), completedAt: form.status === "DONE" ? new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : null, comments: [] };
+            const newTask = { ...form, id: uid("t"), employeeId: currentEmployee.id, dateKey: dateKey(selectedDate), createdAt: Date.now(), completedAt: form.status === "DONE" ? new Date().toLocaleTimeString("en-US", { timeZone: "Asia/Kathmandu", hour: "2-digit", minute: "2-digit" }) : null, comments: [] };
             return { ...s, tasks: [...s.tasks, newTask] };
         });
         toast(taskModal?.task ? "Task updated." : "Task added.", "success");
@@ -1685,7 +1689,7 @@ export default function App() {
                 {page === "calendar" && <CalendarPage state={state} selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentEmployee={currentEmployee} setPage={setPage} />}
                 {page === "reports" && <ReportsPage state={state} actions={actions} currentEmployee={currentEmployee} />}
                 {page === "summary" && <DailySummaryPage state={state} selectedDate={selectedDate} setSelectedDate={setSelectedDate} actions={actions} currentEmployee={currentEmployee} />}
-                {page === "management" && currentEmployee.role === "manager" && <ManagementPage state={state} selectedDate={selectedDate} currentEmployee={currentEmployee} actions={actions} />}
+                {page === "management" && currentEmployee.role === "manager" && <ManagementPage state={state} selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentEmployee={currentEmployee} actions={actions} />}
                 {page === "settings" && <SettingsPage currentEmployee={currentEmployee} actions={actions} userSettings={userSettings} setUserSettings={setUserSettings} />}
             </main>
 
