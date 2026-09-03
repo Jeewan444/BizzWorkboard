@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 /* ============================================================================
-   BIZZ WORKBOARD — Personal Daily Work Record System
+   BIZZ WORKBOARD — Personal Daily Work Record System - By Jeewan Kumar Thakur
    ----------------------------------------------------------------------------
    Single-file prototype. All data lives in React state + localStorage.
 
